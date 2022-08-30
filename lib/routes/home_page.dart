@@ -125,16 +125,21 @@ class _HomePageState extends State<HomePage> {
         alignment: AlignmentDirectional.topCenter,
         children: [
           _getContentPage(),
-          const SizedBox(
+           SizedBox(
             width: double.infinity,
             height: kToolbarHeight,
             child: Center(
-              child: Text(
-                "好看视频",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900),
+              child: InkWell(
+                child: const Text(
+                  "好看视频",
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900),
+                ),
+               onTap: (){
+                  _refresh();
+               },
               ),
             ),
           )

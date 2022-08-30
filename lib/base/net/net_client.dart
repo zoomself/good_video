@@ -2,12 +2,12 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import '../../generated/json/base/json_convert_content.dart';
 import 'api_result_exception.dart';
-import 'token_interceptor.dart';
+import 'default_interceptor.dart';
 
 class NetClient {
   late Dio _dio;
   static final NetClient _netClient = NetClient._internal();
-  final TokenInterceptor _tokenInterceptor = TokenInterceptor();
+  final DefaultInterceptor _defaultInterceptor = DefaultInterceptor();
   final LogInterceptor _logInterceptor = LogInterceptor(
       request: false,
       requestHeader: false,
@@ -17,7 +17,11 @@ class NetClient {
 
   NetClient._internal() {
     _dio = Dio();
-    _dio.interceptors.add(_tokenInterceptor);
+    //默认配置
+    _dio.options.connectTimeout = 30 * 1000;
+    _dio.options.receiveTimeout = 30 * 1000;
+    _dio.options.sendTimeout = 30 * 1000;
+    _dio.interceptors.add(_defaultInterceptor);
     _dio.interceptors.add(_logInterceptor);
   }
 
@@ -27,18 +31,18 @@ class NetClient {
 
   void get<T>(String url,
       {Map<String, dynamic>? queryParameters,
+      Map<String, dynamic>? extra,
+      Map<String, dynamic>? headers,
       VoidCallback? onStart,
       ValueChanged<T>? onSuccess,
       VoidCallback? onComplete,
       ValueChanged<Exception>? onError}) {
     RequestOptions requestOptions = RequestOptions(
-      path: url,
-      method: "get",
-      queryParameters: queryParameters,
-      connectTimeout: 30 * 1000,
-      receiveTimeout: 30 * 1000,
-      sendTimeout: 30 * 1000,
-    );
+        path: url,
+        method: "get",
+        queryParameters: queryParameters,
+        headers: headers,
+        extra: extra);
     fetch(requestOptions,
         onStart: onStart,
         onSuccess: onSuccess,
@@ -48,24 +52,23 @@ class NetClient {
 
   void post<T>(String url,
       {dynamic data,
+      Map<String, dynamic>? extra,
+      Map<String, dynamic>? headers,
       VoidCallback? onStart,
       ValueChanged<T>? onSuccess,
       VoidCallback? onComplete,
       ValueChanged<Exception>? onError}) {
-    RequestOptions requestOptions = RequestOptions(
-      path: url,
-      method: "post",
-      data: data,
-      connectTimeout: 30 * 1000,
-      receiveTimeout: 30 * 1000,
-      sendTimeout: 30 * 1000,
-    );
 
-    fetch(requestOptions,
-        onStart: onStart,
-        onSuccess: onSuccess,
-        onComplete: onComplete,
-        onError: onError);
+    RequestOptions requestOptions = RequestOptions(
+        path: url, method: "post", data: data, headers: headers, extra: extra);
+
+    fetch(
+      requestOptions,
+      onStart: onStart,
+      onSuccess: onSuccess,
+      onComplete: onComplete,
+      onError: onError,
+    );
   }
 
   void fetch<T>(RequestOptions requestOptions,
@@ -83,10 +86,48 @@ class NetClient {
       if (statusCode != null && statusCode == 200) {
         var data = response.data;
         if (data != null) {
-          var responseData = data["result"];
-          var respCode = data["code"];
-          var respMsg = data["message"];
-          if (respCode != 200) { //好看视频api 正常返回是200
+          var extra = requestOptions.extra;
+          var apiResultDataList=extra["api_result_data"];
+          var apiResultCode=extra["api_result_code"];
+          var apiResultMsg=extra["api_result_msg"];
+          var apiResultCodeOkState=extra["api_result_code_ok_state"];
+
+          //解析 code字段
+          dynamic  respCode;
+          for(String s in apiResultCode){
+            respCode=data[s];
+            if(respCode!=null){
+              break;
+            }
+          }
+          //解析 msg字段
+          dynamic  respMsg;
+          for(String s in apiResultMsg){
+            respMsg=data[s];
+            if(respCode!=null){
+              break;
+            }
+          }
+
+          //解析 data字段
+          dynamic  responseData;
+          for(String s in apiResultDataList){
+            responseData=data[s];
+            if(responseData!=null){
+              break;
+            }
+          }
+
+          //解析返回成功状态码
+          bool isOk=false;
+          for(String s in apiResultCodeOkState){
+            if(respCode.toString()==s){
+              isOk=true;
+              break;
+            }
+          }
+
+          if (!isOk) {
             var are = ApiResultException(respMsg);
             are.code = respCode;
             throw are;
@@ -102,6 +143,7 @@ class NetClient {
               }
             }
           }
+
         } else {
           throw ApiResultException("response data is null");
         }
@@ -116,7 +158,7 @@ class NetClient {
         //统一处理异常
         DioError dioError = DioError(
             requestOptions: requestOptions, response: response, error: e);
-        _tokenInterceptor.onError(dioError, ErrorInterceptorHandler());
+        _defaultInterceptor.onError(dioError, ErrorInterceptorHandler());
       }
     }
   }
