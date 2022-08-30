@@ -1,20 +1,19 @@
+import 'package:easy_refresh/easy_refresh.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_easyrefresh/easy_refresh.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:good_video/base/net/net_client.dart';
-import 'package:good_video/base/utils/screen_utils.dart';
 import 'package:good_video/model/video_result_entity.dart';
 import 'package:good_video/routes/video_item_page.dart';
 
-class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+class VideoListPage extends StatefulWidget {
+  const VideoListPage({Key? key}) : super(key: key);
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<VideoListPage> createState() => _VideoListPageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _VideoListPageState extends State<VideoListPage> {
   late EasyRefreshController _refreshController;
   late PageController _pageController;
   final int _pageSize = 10;
@@ -80,23 +79,41 @@ class _HomePageState extends State<HomePage> {
         child: CircularProgressIndicator(),
       );
     }
-
-    return PageView.builder(
-      controller: _pageController,
-      itemBuilder: (context, index) {
-        return VideoItemPage(
-          videoEntity: _dataList[index],
-        );
-      },
-      itemCount: _dataList.length,
-      scrollDirection: Axis.vertical,
-    );
+    return EasyRefresh(
+        controller: _refreshController,
+        header: const ClassicHeader(textStyle: TextStyle(color: Colors.white)),
+        footer: const ClassicFooter(textStyle: TextStyle(color: Colors.white)),
+        onRefresh: () {
+          _refresh();
+        },
+        onLoad: () {
+          _loadMore();
+        },
+        child: PageView.builder(
+          controller: _pageController,
+          itemBuilder: (context, index) {
+            return VideoItemPage(
+              videoEntity: _dataList[index],
+            );
+          },
+          itemCount: _dataList.length,
+          scrollDirection: Axis.vertical,
+          onPageChanged: (page){
+            //提前2页自动加载
+            if(page==_dataList.length-2){
+              _loadMore();
+            }
+          },
+        ));
   }
 
   @override
   void initState() {
     _pageController = PageController();
-    _refreshController = EasyRefreshController();
+    _refreshController = EasyRefreshController(
+      controlFinishRefresh: true,
+      controlFinishLoad: true,
+    );
     super.initState();
     _refresh();
   }
@@ -118,28 +135,23 @@ class _HomePageState extends State<HomePage> {
         elevation: 0,
         systemOverlayStyle: const SystemUiOverlayStyle(
             statusBarColor: Colors.black,
-            statusBarIconBrightness: Brightness.light),
+            statusBarIconBrightness: Brightness.dark),
         primary: true,
       ),
       body: Stack(
         alignment: AlignmentDirectional.topCenter,
         children: [
           _getContentPage(),
-           SizedBox(
+          const SizedBox(
             width: double.infinity,
             height: kToolbarHeight,
             child: Center(
-              child: InkWell(
-                child: const Text(
-                  "好看视频",
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900),
-                ),
-               onTap: (){
-                  _refresh();
-               },
+              child: Text(
+                "好看视频",
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900),
               ),
             ),
           )

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:good_video/routes/home_page.dart';
+import 'package:good_video/routes/video_list_page.dart';
 
 void main() {
   runApp(const App());
@@ -15,7 +15,7 @@ class App extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       debugShowCheckedModeBanner: false,
-      home: const HomePage(),
+      home: const VideoListPage(),
     );
   }
 }

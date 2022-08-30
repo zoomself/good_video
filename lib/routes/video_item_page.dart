@@ -17,6 +17,7 @@ class VideoItemPage extends StatefulWidget {
 
 class _VideoItemPageState extends State<VideoItemPage> {
   late VideoPlayerController _videoController;
+  String? _preDataSource;
 
   ///视频
   Widget _getVideoView() {
@@ -63,7 +64,7 @@ class _VideoItemPageState extends State<VideoItemPage> {
   ///视频进度
   Widget _getProgressView() {
     return Padding(
-      padding: const EdgeInsets.only(top: 16, bottom: 16),
+      padding: const EdgeInsets.only(top: 16, bottom: 0),
       child: Slider(
           max: _videoController.value.duration.inMilliseconds.toDouble(),
           inactiveColor: const Color(0xff1a1a1a),
@@ -247,6 +248,9 @@ class _VideoItemPageState extends State<VideoItemPage> {
     });
     _videoController.setLooping(true);
     _videoController.play();
+    _preDataSource=widget.videoEntity.playUrl;
+    LogUtils.log("_initVideoController ");
+
   }
 
   @override
@@ -257,12 +261,19 @@ class _VideoItemPageState extends State<VideoItemPage> {
 
   @override
   void dispose() {
-    super.dispose();
     _videoController.dispose();
+    _preDataSource=null;
+    super.dispose();
+
   }
 
   @override
   Widget build(BuildContext context) {
+    //不在build里面初始化的话，刷新后标题和其他的都变了，视频还在播放之前的一个
+    var playUrl = widget.videoEntity.playUrl;
+    if(playUrl!=_preDataSource){
+      _initVideoController();
+    }
     return Stack(
       children: [
         InkWell(
